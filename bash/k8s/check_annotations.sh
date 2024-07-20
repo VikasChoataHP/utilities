@@ -19,7 +19,7 @@ for ns in $(kubectl get ns -o jsonpath='{.items[*].metadata.name}'); do
   annotation_value=$(kubectl get ns $ns -o jsonpath='{.metadata.annotations.com\.myorg/snowincidentnotificationgroup}')
   if [[ -z "$annotation_value" ]]; then # Checking if the variable is empty
     echo "Namespace $ns doesn't have annotation com.myorg/snowincidentnotificationgroup"
-    #kubectl annotate ns $ns com.myorg/snowincidentnotificationgroup=SLF-OPS-DEV
+    #kubectl annotate ns $ns com.myorg/snowincidentnotificationgroup=VIKAS-OPS-DEV
 
   fi
 done
