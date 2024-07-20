@@ -1,0 +1,57 @@
+---
+- name: Add client server names passed in a variable to the inventory
+  hosts: all,localhost
+  gather_facts: false
+  run_once: true
+
+  tasks:
+    - name: "Add client server names to the inventory"
+      when: ev_targets is defined
+      block:
+        - name: Simple A record (IPV4 address) lookup for myhost123
+          ansible.builtin.debug:
+            msg: "{{ lookup('community.dns.lookup', 'myhost123', type='NS')}}"
+
+        - name: "Loop through ev_targets list, and convert each item server to fqdn"
+          ansible.builtin.shell: |
+            set -o pipefail
+            fqdn=$(nslookup {{ item }} 2>/dev/null | grep 'Name:' | awk '{print $2}')
+            if [ -z "$fqdn" ]; then
+              echo "nslookup failed for {{ item }}"
+            else
+              echo $fqdn
+            fi
+          loop: "{{ ev_targets.replace(',','\n').split() }}"
+          register: nslookup_output
+          changed_when: false
+          ignore_errors: true
+
+        - name: "Print any nslookup failures"
+          ansible.builtin.debug:
+            msg: "{{ item.stdout }}"
+          loop: "{{ nslookup_output.results }}"
+          changed_when: false
+          when: "'nslookup failed' in item.stdout"
+
+        - name: "Extract fqdn from nslookup output and filter out failures"
+          ansible.builtin.set_fact:
+            fqdn: "{{ nslookup_output.results | map(attribute='stdout') | reject('search', 'nslookup failed') | list }}"
+          changed_when: false
+
+        - name: "Print fqdn of each server"
+          ansible.builtin.debug:
+            msg: "{{ fqdn }}"
+          changed_when: false
+
+        - name: "Add fqdn of each server to the inventory"
+          changed_when: false
+          ansible.builtin.add_host:
+            name: "{{ item }}"
+            groups: "ansible_ssh"
+            ansible_host: "{{ item }}"
+          loop: "{{ fqdn }}"
+
+        - name: "Print inventory"
+          ansible.builtin.debug:
+            msg: "{{ groups['all'] }}"
+          changed_when: false
