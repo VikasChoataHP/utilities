@@ -51,7 +51,7 @@ for template in templates:
         response = requests.get(execution_environment_url, headers=headers, verify=False)
         if response.status_code == 200:
             execution_environment_data = response.json()
-            print (execution_environment_data)
+            #print (execution_environment_data)
             execution_environment = execution_environment_data["name"]
         else:
             # print("Error: Unable to get execution environment")
